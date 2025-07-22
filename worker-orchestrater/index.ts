@@ -16,7 +16,7 @@ type Machine = {
     assignedProject?: string 
 }
 
-const ALL_MACHINES: Machine = []
+const ALL_MACHINES: Machine[] = []
 
 async function refreshInstances() {
     const command = new DescribeAutoScalingInstancesCommand()
@@ -38,17 +38,20 @@ setInterval(() => {
 
 
 app.get("/:projectId", (req: Request, res: Response) => {
+    const idleMachines: Machine = ALL_MACHINES.find(x => x.isUsed === false)!
+    if(!idleMachines){
+        // scale up infrastructure
+        res.status(404).json({ message: "There are no idle machines found." })
+        return 
+    }
+    idleMachines.isUsed = true;
+    
+    const command = new SetDesiredCapacityCommand({ 
+        AutoScalingGroupName: "code-server",
+        DesiredCapacity: ALL_MACHINES.length + 1
+    })
     res.send("Hello world.")
 })
 
 app.listen(3000);
 
-
-// const command = new SetDesiredCapacityCommand({ 
-//     AutoScalingGroupName: "code-server",
-//     DesiredCapacity: 10
-// })
-
-// const response = await client.send(command)
-
-// console.log(response)
