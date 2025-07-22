@@ -1,6 +1,7 @@
 import { AutoScalingClient, SetDesiredCapacityCommand, DescribeAutoScalingInstancesCommand } from "@aws-sdk/client-auto-scaling"
 import dotenv from "dotenv"
 import express, { Request, Response } from "express"
+import { DescribeInstancesCommand } from "@aws-sdk/client-ec2";
 dotenv.config()
 
 const app = express();
@@ -17,15 +18,27 @@ type Machine = {
 
 const ALL_MACHINES: Machine = []
 
-setInterval(() => {
+async function refreshInstances() {
     const command = new DescribeAutoScalingInstancesCommand()
-    const data = client.send(command)
-    console.log(data)
+    const data = await client.send(command)
+
+    const ec2InstanceCommand = new DescribeInstancesCommand({
+        InstanceIds: data.AutoScalingInstances?.map(x => x.InstanceId)
+    })
+    
+    const ec2Response = await client.send(ec2InstanceCommand)
+    console.log(JSON.stringify(ec2Response.Reservations[0].instances[0].PublicDnsName))
+}
+
+refreshInstances()
+
+setInterval(() => {
+    refreshInstances()
 }, 10 * 1000)
 
 
 app.get("/:projectId", (req: Request, res: Response) => {
-    
+    res.send("Hello world.")
 })
 
 app.listen(3000);
