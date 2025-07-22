@@ -1,4 +1,4 @@
-import { AutoScalingClient, SetDesiredCapacityCommand, DescribeAutoScalingInstancesCommand } from "@aws-sdk/client-auto-scaling"
+import { AutoScalingClient, SetDesiredCapacityCommand, DescribeAutoScalingInstancesCommand, TerminateInstanceInAutoScalingGroupCommand } from "@aws-sdk/client-auto-scaling"
 import dotenv from "dotenv"
 import express, { Request, Response } from "express"
 import { DescribeInstancesCommand } from "@aws-sdk/client-ec2";
@@ -50,7 +50,20 @@ app.get("/:projectId", (req: Request, res: Response) => {
         AutoScalingGroupName: "code-server",
         DesiredCapacity: ALL_MACHINES.length + 1
     })
-    res.send("Hello world.")
+
+    res.send({
+        ip: idleMachines.ip
+    })
+})
+
+app.post("/destroy", (req, res) => {
+    const machineId: string = req.body.machineId
+
+    const command = new TerminateInstanceInAutoScalingGroupCommand({
+        InstanceId: machineId,
+        ShouldDecrementDesiredCapacity: true
+    });
+    client.send(command)
 })
 
 app.listen(3000);
